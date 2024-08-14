@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Modal,
     ModalOverlay,
@@ -15,41 +15,81 @@ import {
     Textarea,
     Heading,
     Button,
+    Spinner,
+    useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-export default function AddEditNote({ isOpen, onClose, type }) {
+export default function AddEditNote({ isOpen, onClose, type, note, onSave }) {
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
     const router = useRouter();
+    const toast = useToast();
+
+    useEffect(() => {
+        if (type === "edit" && note) {
+            setTitle(note.title);
+            setBody(note.body);
+        } else {
+            setTitle("");
+            setBody("");
+        }
+    }, [note, type, isOpen]);
 
     const handleSave = async () => {
+        if (!title || !body) {
+            toast({
+                title: "Error",
+                description: "Kedua field harus diisi",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        setIsLoading(true);
         try {
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/notes`,
-                {
+            if (type === "new") {
+                await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/notes`, {
                     title,
                     body,
-                }
-            );
+                });
+            } else if (type === "edit" && note) {
+                await axios.put(
+                    `${process.env.NEXT_PUBLIC_API_URL}/notes/${note.id}`,
+                    {
+                        title,
+                        body,
+                    }
+                );
+            }
+
             onClose();
+            if (onSave) onSave();
+            router.push("/");
         } catch (error) {
             console.error("Error saving note:", error);
+        } finally {
+            setIsLoading(false);
         }
+    };
+
+    const handleClose = () => {
+        onClose();
     };
 
     return (
         <>
-            <Modal onClose={onClose} isOpen={isOpen} isCentered size="xl">
-                <ModalOverlay />
+            <Modal onClose={handleClose} isOpen={isOpen} isCentered size="xl">
+                <ModalOverlay backdropFilter="blur(10px)" />
                 <ModalContent>
                     <ModalHeader>
                         <Heading size="md">
-                            {type == "new"
-                                ? "Tambah Catatan"
-                                : "Tinjau Catatan"}
+                            {type === "new" ? "Tambah Catatan" : "Edit Catatan"}
                         </Heading>
                     </ModalHeader>
                     <ModalCloseButton />
@@ -74,11 +114,20 @@ export default function AddEditNote({ isOpen, onClose, type }) {
                     </ModalBody>
 
                     <ModalFooter>
-                        <Button onClick={onClose} mr={3}>
+                        <Button onClick={handleClose} mr={3}>
                             Tutup
                         </Button>
-                        <Button colorScheme="blue" onClick={handleSave}>
-                            Simpan Catatan
+                        <Button
+                            colorScheme="blue"
+                            onClick={handleSave}
+                            isLoading={isLoading}
+                            disabled={isLoading || !title || !body}
+                        >
+                            {isLoading ? (
+                                <Spinner size="sm" />
+                            ) : (
+                                "Simpan Catatan"
+                            )}
                         </Button>
                     </ModalFooter>
                 </ModalContent>

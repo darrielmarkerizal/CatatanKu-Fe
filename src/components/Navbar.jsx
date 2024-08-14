@@ -7,7 +7,7 @@ import { CiStickyNote } from "react-icons/ci";
 import { Button } from "@chakra-ui/react";
 import AddEditNote from "./AddEditNote";
 
-export default function Navbar() {
+export default function Navbar({ onSave }) {
     const [showNoteDialog, setShowNoteDialog] = useState(false);
 
     return (
@@ -22,14 +22,14 @@ export default function Navbar() {
                     </Link>
                     <div className="flex items-center gap-2">
                         <Button
-                            colorScheme="gray"
+                            colorScheme="teal"
                             className="sm:hidden"
                             onClick={() => setShowNoteDialog(true)}
                             leftIcon={<FaPlus size={20} />}
                         />
 
                         <Button
-                            colorScheme="gray"
+                            colorScheme="teal"
                             className="hidden sm:flex"
                             onClick={() => setShowNoteDialog(true)}
                             leftIcon={<FaPlus size={20} />}
@@ -43,6 +43,7 @@ export default function Navbar() {
                 isOpen={showNoteDialog}
                 type="new"
                 onClose={() => setShowNoteDialog(false)}
+                onSave={onSave}
             />
         </>
     );

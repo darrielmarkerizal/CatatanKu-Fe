@@ -14,10 +14,7 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en">
             <body className={inter.className}>
-                <Providers>
-                    <Navbar />
-                    <main className="m-auto max-w-7xl p-4">{children}</main>
-                </Providers>
+                <Providers>{children}</Providers>
             </body>
         </html>
     );

@@ -1,63 +1,229 @@
 "use client";
 
-import Note from "@/components/Note";
-import { useEffect, useState } from "react";
 import axios from "axios";
-import { SimpleGrid } from "@chakra-ui/react";
+import {
+    SimpleGrid,
+    InputGroup,
+    Input,
+    InputLeftElement,
+    Icon,
+    Button,
+    Box,
+    Heading,
+    Center,
+    Text,
+    AlertDialog,
+    AlertDialogBody,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogContent,
+    AlertDialogOverlay,
+} from "@chakra-ui/react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { Search } from "lucide-react";
 import AddEditNote from "@/components/AddEditNote";
+import Navbar from "@/components/Navbar";
+import { useState, useEffect, useRef } from "react";
+import Note from "@/components/Note";
 
 export default function Home() {
     const [notes, setNotes] = useState([]);
+    const [filteredNotes, setFilteredNotes] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [showNoteDialog, setShowNoteDialog] = useState(false);
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10);
+    const [deleteNoteId, setDeleteNoteId] = useState(null);
+    const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [currentNote, setCurrentNote] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(false);
+    const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const cancelRef = useRef();
 
     const fetchNotes = async () => {
         try {
             const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_API_URL}/notes`
+                `${process.env.NEXT_PUBLIC_API_URL}/notes`,
+                {
+                    params: { page, limit },
+                }
             );
-            setNotes(response.data);
+            setHasNextPage(response.data.hasNextPage);
+            setHasPreviousPage(response.data.hasPreviousPage);
+            setNotes(response.data.notes);
+            setFilteredNotes(response.data.notes);
         } catch (error) {
             console.error(error);
         }
     };
 
-    const formatDate = (dateString) => {
-        const options = {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-        };
-        return new Intl.DateTimeFormat("id-ID", options).format(
-            new Date(dateString)
-        );
-    };
-
     useEffect(() => {
         fetchNotes();
-    }, []);
+    }, [page]);
+
+    useEffect(() => {
+        if (searchQuery) {
+            setFilteredNotes(
+                notes.filter(
+                    (note) =>
+                        note.title
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()) ||
+                        note.body
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase())
+                )
+            );
+        } else {
+            setFilteredNotes(notes);
+        }
+    }, [searchQuery, notes]);
+    const formatDate = (dateString) => {
+        const options = {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
+    const handleDelete = async () => {
+        try {
+            await axios.delete(
+                `${process.env.NEXT_PUBLIC_API_URL}/notes/${deleteNoteId}`
+            );
+            fetchNotes();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     return (
         <>
-            <SimpleGrid columns={[2, null, 3]} spacing="24px">
-                {notes.map((note) => (
-                    <Note
-                        key={note.id}
-                        title={note.title}
-                        datetime={formatDate(note.createdAt)}
-                        body={note.body}
-                        onClick={() => setShowNoteDialog(true)}
+            <Navbar />
+            <main className="m-auto max-w-7xl p-4">
+                <InputGroup mb={4} mt={4}>
+                    <InputLeftElement pointerEvents="none">
+                        <Icon as={Search} />
+                    </InputLeftElement>
+                    <Input
+                        placeholder="Search notes"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                ))}
-            </SimpleGrid>
+                </InputGroup>
 
-            <AddEditNote
-                isOpen={showNoteDialog}
-                type="edit"
-                onClose={() => setShowNoteDialog(false)}
-            />
+                {notes.length === 0 ? (
+                    <Center flexDirection="column" mt={10} textAlign="center">
+                        <Heading mb={4}>Belum Ada Catatan</Heading>
+                        <Text mb={4}>
+                            Catatan pertama belum ada? Yuk tambahkan catatan
+                        </Text>
+                        <Button
+                            colorScheme="teal"
+                            onClick={() => setShowNoteDialog(true)}
+                        >
+                            Tambah Catatan
+                        </Button>
+                    </Center>
+                ) : (
+                    <>
+                        <SimpleGrid columns={[1, 2, 3]} spacing={4}>
+                            {filteredNotes.map((note) => (
+                                <Note
+                                    key={note.id}
+                                    title={note.title}
+                                    datetime={formatDate(note.createdAt)}
+                                    body={note.body}
+                                    onEdit={() => {
+                                        setCurrentNote(note);
+                                        setShowNoteDialog(true);
+                                    }}
+                                    onDelete={() => {
+                                        setDeleteNoteId(note.id);
+                                        setDeleteDialogOpen(true);
+                                    }}
+                                />
+                            ))}
+                        </SimpleGrid>
+
+                        <Box
+                            display="flex"
+                            justifyContent="center"
+                            mt={4}
+                            gap={2}
+                        >
+                            <Button
+                                leftIcon={<ChevronLeftIcon />}
+                                colorScheme="teal"
+                                variant="outline"
+                                onClick={() =>
+                                    setPage((prev) => Math.max(prev - 1, 1))
+                                }
+                                disabled={!hasPreviousPage}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                rightIcon={<ChevronRightIcon />}
+                                colorScheme="teal"
+                                variant="solid"
+                                onClick={() => setPage((prev) => prev + 1)}
+                                disabled={!hasNextPage}
+                            >
+                                Next
+                            </Button>
+                        </Box>
+                    </>
+                )}
+
+                <AddEditNote
+                    isOpen={showNoteDialog}
+                    type={currentNote ? "edit" : "new"}
+                    note={currentNote}
+                    onClose={() => {
+                        setShowNoteDialog(false);
+                        setCurrentNote(null);
+                    }}
+                    onSave={fetchNotes}
+                />
+
+                <AlertDialog
+                    isCentered
+                    isOpen={isDeleteDialogOpen}
+                    leastDestructiveRef={cancelRef}
+                    onClose={() => setDeleteDialogOpen(false)}
+                >
+                    <AlertDialogOverlay>
+                        <AlertDialogContent>
+                            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                                Hapus Catatan
+                            </AlertDialogHeader>
+
+                            <AlertDialogBody>
+                                Apakah Anda yakin ingin menghapus catatan ini?
+                            </AlertDialogBody>
+
+                            <AlertDialogFooter>
+                                <Button
+                                    ref={cancelRef}
+                                    onClick={() => setDeleteDialogOpen(false)}
+                                >
+                                    Batalkan
+                                </Button>
+                                <Button
+                                    colorScheme="red"
+                                    onClick={handleDelete}
+                                    ml={3}
+                                >
+                                    Hapus
+                                </Button>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialogOverlay>
+                </AlertDialog>
+            </main>
         </>
     );
 }
