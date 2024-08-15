@@ -18,6 +18,7 @@ import {
     AlertDialogHeader,
     AlertDialogContent,
     AlertDialogOverlay,
+    Select,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { Search } from "lucide-react";
@@ -38,6 +39,7 @@ export default function Home() {
     const [currentNote, setCurrentNote] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(false);
     const [hasPreviousPage, setHasPreviousPage] = useState(false);
+    const [sortBy, setSortBy] = useState("datetime");
     const cancelRef = useRef();
 
     const fetchNotes = async () => {
@@ -45,7 +47,7 @@ export default function Home() {
             const response = await axios.get(
                 `${process.env.NEXT_PUBLIC_API_URL}/notes`,
                 {
-                    params: { page, limit },
+                    params: { page, limit, sortBy },
                 }
             );
             setHasNextPage(response.data.hasNextPage);
@@ -59,7 +61,7 @@ export default function Home() {
 
     useEffect(() => {
         fetchNotes();
-    }, [page]);
+    }, [page, sortBy]);
 
     useEffect(() => {
         if (searchQuery) {
@@ -103,16 +105,29 @@ export default function Home() {
         <>
             <Navbar />
             <main className="m-auto max-w-7xl p-4">
-                <InputGroup mb={4} mt={4}>
-                    <InputLeftElement pointerEvents="none">
-                        <Icon as={Search} />
-                    </InputLeftElement>
+                <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    mt={4}
+                    mb={4}
+                >
                     <Input
                         placeholder="Search notes"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                </InputGroup>
+                    <Select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        width="200px"
+                        ml={2}
+                    >
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="title-a-z">Title A-Z</option>
+                        <option value="title-z-a">Title Z-A</option>
+                    </Select>
+                </Box>
 
                 {notes.length === 0 ? (
                     <Center flexDirection="column" mt={10} textAlign="center">
@@ -186,7 +201,7 @@ export default function Home() {
                         setShowNoteDialog(false);
                         setCurrentNote(null);
                     }}
-                    onSave={fetchNotes}
+                    onSave={() => fetchNotes()}
                 />
 
                 <AlertDialog

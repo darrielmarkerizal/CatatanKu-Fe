@@ -58,6 +58,13 @@ export default function AddEditNote({ isOpen, onClose, type, note, onSave }) {
                     title,
                     body,
                 });
+                toast({
+                    title: "Success",
+                    description: "Catatan berhasil ditambahkan.",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
             } else if (type === "edit" && note) {
                 await axios.put(
                     `${process.env.NEXT_PUBLIC_API_URL}/notes/${note.id}`,
@@ -66,15 +73,29 @@ export default function AddEditNote({ isOpen, onClose, type, note, onSave }) {
                         body,
                     }
                 );
+                toast({
+                    title: "Success",
+                    description: "Catatan berhasil diperbarui.",
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                });
             }
 
-            onClose();
+            // Call the onSave callback to refresh the list of notes
             if (onSave) onSave();
-            router.push("/");
         } catch (error) {
-            console.error("Error saving note:", error);
+            console.error(error);
+            toast({
+                title: "Error",
+                description: "Terjadi kesalahan saat menyimpan catatan.",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
         } finally {
             setIsLoading(false);
+            onClose(); // Close the modal whether the operation is successful or not
         }
     };
 
