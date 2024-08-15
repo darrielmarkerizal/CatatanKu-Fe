@@ -82,7 +82,6 @@ export default function AddEditNote({ isOpen, onClose, type, note, onSave }) {
                 });
             }
 
-            // Call the onSave callback to refresh the list of notes
             if (onSave) onSave();
         } catch (error) {
             console.error(error);
@@ -95,7 +94,7 @@ export default function AddEditNote({ isOpen, onClose, type, note, onSave }) {
             });
         } finally {
             setIsLoading(false);
-            onClose(); // Close the modal whether the operation is successful or not
+            onClose();
         }
     };
 
